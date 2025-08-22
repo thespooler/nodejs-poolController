@@ -31,12 +31,19 @@ class Config {
     public emitter: EventEmitter;
     constructor() {
         let self=this;
-        this.cfgPath = path.posix.join(process.cwd(), "/config.json");
+        this.cfgPath = path.posix.join(process.cwd(), "data/config.json");
         this.emitter = new EventEmitter();
         // RKS 05-18-20: This originally had multiple points of failure where it was not in the try/catch.
         try {
             this._isLoading = true;
-            this._cfg = fs.existsSync(this.cfgPath) ? JSON.parse(fs.readFileSync(this.cfgPath, "utf8").trim()) : {};
+            if (fs.existsSync(this.cfgPath)) {
+                this._cfg = JSON.parse(fs.readFileSync(this.cfgPath, "utf8").replace(/^\uFEFF/, ''));
+            } else if (fs.existsSync(path.posix.join(process.cwd(), "/config.json"))) {
+                // If we don't have the latest split config location, check in old location
+                this._cfg = JSON.parse(fs.readFileSync(path.posix.join(process.cwd(), "/config.json"), "utf8").replace(/^\uFEFF/, ''));
+            } else {
+                this._cfg = {};
+            }
             const def = JSON.parse(fs.readFileSync(path.join(process.cwd(), "/defaultConfig.json"), "utf8").trim());
             const packageJson = JSON.parse(fs.readFileSync(path.join(process.cwd(), "/package.json"), "utf8").trim());
             this._cfg = extend(true, {}, def, this._cfg, { appVersion: packageJson.version });
